@@ -2,54 +2,93 @@
 <html lang="he">
 <head>
 <meta charset="UTF-8">
-<title>Audio Stream</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Stream</title>
 
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
 <style>
-body{
-    margin:20px;
-    font-family:Arial;
+html,body{
+    margin:0;
+    background:#000;
+    height:100%;
 }
-audio{
+
+video{
     width:100%;
+    height:100vh;
+    background:#000;
 }
 </style>
 
 </head>
+
 <body>
 
-<audio id="audio" controls autoplay muted></audio>
+<video id="player" controls autoplay playsinline></video>
 
 <script>
 
-const url = "https://contact.gostreaming.tv/Con-9/tracks-v3a1/mono.ts.m3u8";
+const STREAM_URL = "https://contact.gostreaming.tv/Con-9/index.m3u8";
+const FALLBACK = "silence.mp3";
 
-const audio = document.getElementById("audio");
+const video = document.getElementById("player");
 
-function connect(){
+let hls = null;
+let usingFallback = false;
+let checking = false;
+
+function destroyHls(){
+    if(hls){
+        hls.destroy();
+        hls = null;
+    }
+}
+
+function playFallback(){
+
+    destroyHls();
+
+    if(usingFallback) return;
+
+    usingFallback = true;
+
+    video.src = FALLBACK;
+    video.loop = true;
+
+    video.play().catch(()=>{});
+
+}
+
+function playStream(){
+
+    destroyHls();
 
     if(Hls.isSupported()){
 
-        const hls = new Hls({
+        hls = new Hls({
             liveSyncDurationCount:3
         });
 
-        hls.loadSource(url);
+        hls.loadSource(STREAM_URL);
 
-        hls.attachMedia(audio);
+        hls.attachMedia(video);
 
         hls.on(Hls.Events.MANIFEST_PARSED,function(){
-            audio.play().catch(()=>{});
+
+            usingFallback = false;
+
+            video.loop = false;
+
+            video.play().catch(()=>{});
+
         });
 
         hls.on(Hls.Events.ERROR,function(event,data){
 
             if(data.fatal){
 
-                hls.destroy();
-
-                setTimeout(connect,3000);
+                playFallback();
 
             }
 
@@ -57,15 +96,68 @@ function connect(){
 
     }else{
 
-        audio.src=url;
+        video.src = STREAM_URL;
 
-        audio.play().catch(()=>{});
+        video.loop = false;
+
+        video.play().catch(function(){
+
+            playFallback();
+
+        });
 
     }
 
 }
 
-connect();
+async function checkStream(){
+
+    if(checking) return;
+
+    checking = true;
+
+    try{
+
+        const response = await fetch(STREAM_URL,{
+            method:"HEAD",
+            cache:"no-store"
+        });
+
+        if(response.ok){
+
+            if(usingFallback){
+
+                playStream();
+
+            }
+
+        }else{
+
+            if(!usingFallback){
+
+                playFallback();
+
+            }
+
+        }
+
+    }catch(e){
+
+        if(!usingFallback){
+
+            playFallback();
+
+        }
+
+    }
+
+    checking = false;
+
+}
+
+playStream();
+
+setInterval(checkStream,10000);
 
 </script>
 
