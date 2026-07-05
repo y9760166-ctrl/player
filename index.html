@@ -2,43 +2,72 @@
 <html lang="he">
 <head>
 <meta charset="UTF-8">
-<title>Player</title>
+<title>Audio Stream</title>
 
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
-</head>
+<style>
+body{
+    margin:20px;
+    font-family:Arial;
+}
+audio{
+    width:100%;
+}
+</style>
 
+</head>
 <body>
 
-<video
-id="video"
-controls
-autoplay
-style="width:100%;">
-</video>
+<audio id="audio" controls autoplay muted></audio>
 
 <script>
 
-var video = document.getElementById('video');
+const url = "https://contact.gostreaming.tv/Con-9/tracks-v3a1/mono.ts.m3u8";
 
-var url = "https://contact.gostreaming.tv/Con-9/tracks-v3a1/mono.ts.m3u8";
+const audio = document.getElementById("audio");
 
-if(Hls.isSupported()){
+function connect(){
 
-var hls = new Hls();
+    if(Hls.isSupported()){
 
-hls.loadSource(url);
+        const hls = new Hls({
+            liveSyncDurationCount:3
+        });
 
-hls.attachMedia(video);
+        hls.loadSource(url);
 
-}else{
+        hls.attachMedia(audio);
 
-video.src = url;
+        hls.on(Hls.Events.MANIFEST_PARSED,function(){
+            audio.play().catch(()=>{});
+        });
+
+        hls.on(Hls.Events.ERROR,function(event,data){
+
+            if(data.fatal){
+
+                hls.destroy();
+
+                setTimeout(connect,3000);
+
+            }
+
+        });
+
+    }else{
+
+        audio.src=url;
+
+        audio.play().catch(()=>{});
+
+    }
 
 }
+
+connect();
 
 </script>
 
 </body>
 </html>
- 
