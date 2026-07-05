@@ -48,8 +48,16 @@ function destroyHls(){
     }
 }
 
-function safePlay(){
-    video.play().catch(() => {});
+function forcePlay(){
+    video.muted = true;
+
+    const attempt = () => {
+        video.play().catch(() => {
+            setTimeout(attempt, 300);
+        });
+    };
+
+    attempt();
 }
 
 function playFallback(){
@@ -63,7 +71,7 @@ function playFallback(){
     video.muted = true;
 
     video.load();
-    safePlay();
+    forcePlay();
 }
 
 function playStream(){
@@ -80,10 +88,12 @@ function playStream(){
 
         hls.on(Hls.Events.MANIFEST_PARSED, function(){
             usingFallback = false;
+
             video.loop = false;
             video.muted = true;
+
             video.load();
-            safePlay();
+            forcePlay();
         });
 
         hls.on(Hls.Events.ERROR, function(event, data){
@@ -97,12 +107,14 @@ function playStream(){
         video.src = STREAM_URL;
         video.loop = false;
         video.muted = true;
+
         video.load();
-        safePlay();
+        forcePlay();
     }
 }
 
-video.addEventListener("canplay", safePlay);
+// ניסיון נוסף כשהוידאו מוכן
+video.addEventListener("canplay", forcePlay);
 
 playStream();
 
@@ -114,13 +126,19 @@ setInterval(() => {
     fetch(STREAM_URL, { method: "HEAD", cache: "no-store" })
         .then(res => {
             if(res.ok){
-                if(usingFallback) playStream();
+                if(usingFallback){
+                    playStream();
+                }
             } else {
-                if(!usingFallback) playFallback();
+                if(!usingFallback){
+                    playFallback();
+                }
             }
         })
         .catch(() => {
-            if(!usingFallback) playFallback();
+            if(!usingFallback){
+                playFallback();
+            }
         })
         .finally(() => {
             checking = false;
