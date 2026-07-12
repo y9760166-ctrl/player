@@ -6,7 +6,7 @@ const STREAM_URL =
 
 // קובץ השקט
 
-const SILENCE="silence.wav";
+const SILENCE="silence.mp3";
 
 
 // זמן בין בדיקות
