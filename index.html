@@ -1,52 +1,119 @@
 <!DOCTYPE html>
-<html lang="he">
-
+<html lang="he" dir="rtl">
 <head>
-
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Live Stream</title>
-
-<style>
-
-html,body{
-
-margin:0;
-padding:0;
-width:100%;
-height:100%;
-background:black;
-overflow:hidden;
-
-}
-
-#player{
-
-width:100%;
-height:100%;
-background:black;
-
-}
-
-</style>
+<title>נגן שידור חי</title>
 
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+<style>
+body {
+    margin: 0;
+    background: black;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: Arial;
+}
+
+#player {
+    width: 90%;
+    max-width: 700px;
+    background: black;
+}
+
+#status {
+    position: fixed;
+    top: 20px;
+    color: white;
+    font-size: 20px;
+}
+</style>
 
 </head>
 
 <body>
 
-<video
-id="player"
-controls
-autoplay
-playsinline
-preload="auto">
-</video>
+<div id="status">מתחבר לשידור...</div>
 
-<script src="player.js"></script>
+<audio id="player" controls autoplay></audio>
+
+
+<script>
+
+// ===============================
+// הכנס כאן את קישור ה-M3U8 שלך
+// ===============================
+
+const STREAM_URL = "https://www.kolhalashon.com/streaming/live/khl904555/playlist.m3u8";
+
+
+// ===============================
+// הפעלת הנגן
+// ===============================
+
+const audio = document.getElementById("player");
+const status = document.getElementById("status");
+
+
+if (Hls.isSupported()) {
+
+    const hls = new Hls({
+        liveSyncDurationCount: 3,
+        enableWorker: true
+    });
+
+    hls.loadSource(STREAM_URL);
+    hls.attachMedia(audio);
+
+
+    hls.on(Hls.Events.MANIFEST_PARSED, function(){
+
+        status.innerHTML = "השידור מחובר";
+
+        audio.play().catch(function(){
+            status.innerHTML =
+            "לחץ על הפעלה כדי להתחיל";
+        });
+
+    });
+
+
+    hls.on(Hls.Events.ERROR, function(event,data){
+
+        console.log(data);
+
+        if(data.fatal){
+
+            status.innerHTML =
+            "אין שידור כרגע";
+
+        }
+
+    });
+
+
+}
+
+
+// לספארי שיש לו תמיכה מובנית
+else if(audio.canPlayType('application/vnd.apple.mpegurl')) {
+
+    audio.src = STREAM_URL;
+
+    audio.addEventListener('loadedmetadata',function(){
+
+        audio.play();
+
+    });
+
+}
+
+</script>
+
 
 </body>
-
 </html>
